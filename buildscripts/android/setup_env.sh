@@ -27,6 +27,17 @@ QT_TAG="qt6_$(echo "${QT_VERSION}" | tr -d '.')"
 echo "== Setting up Android build environment =="
 echo "   Qt ${QT_VERSION}, NDK ${ANDROID_NDK_VERSION}, platform ${ANDROID_PLATFORM}"
 
+# Fast path: a prebuilt bundle of the host and android Qt trees
+# (e.g. a GitHub release asset), used when the Qt repositories are unreachable.
+QT_BUNDLE_URL="${QT_BUNDLE_URL:-}"
+if [ -n "${QT_BUNDLE_URL}" ] && { [ ! -x "${QT_HOST_DIR}/bin/qmake6" ] || [ ! -f "${QT_ANDROID_DIR}/lib/libQt6Core_arm64-v8a.so" ]; }; then
+    echo "== Downloading Qt bundle =="
+    mkdir -p /tmp/qt-bundle /opt/Qt
+    curl -fL --retry 5 --retry-all-errors --max-time 1800 -o /tmp/qt-bundle/qt.tar.zst "${QT_BUNDLE_URL}" \
+        || { echo "ERROR: failed to download the Qt bundle"; exit 1; }
+    tar --zstd -xf /tmp/qt-bundle/qt.tar.zst -C /opt
+fi
+
 mkdir -p "${QT_HOST_DIR}" "${QT_ANDROID_DIR}" /tmp/qt-download
 cd /tmp/qt-download
 
