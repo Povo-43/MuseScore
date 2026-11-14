@@ -35,8 +35,15 @@ fetch() {
     local url="$1" out="$2"
     if [ ! -s "${out}" ]; then
         echo "Downloading $(basename "${url}")"
-        curl -sL --retry 3 --max-time 900 -o "${out}" "${url}"
+        curl -fL --retry 5 --retry-all-errors --max-time 900 -o "${out}" "${url}" \
+            || { echo "ERROR: failed to download ${url}"; exit 1; }
     fi
+}
+
+listing() {
+    local url="$1"
+    curl -fsSL --retry 5 --retry-all-errors --max-time 120 "${url}" \
+        || { echo "ERROR: failed to fetch listing ${url}"; exit 1; }
 }
 
 extract() {
@@ -52,24 +59,21 @@ PYEOF
 QT_HOST_REPO_URL="${QT_BASE}/linux_x64/desktop/${QT_TAG}/${QT_TAG}"
 if [ ! -x "${QT_HOST_DIR}/bin/qmake6" ]; then
     echo "== Installing host Qt ${QT_VERSION} (${QT_HOST_NAME}) =="
-    HOST_ARCHIVE_LISTING=$(curl -sL "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/")
-    HOST_ARCHIVES=$(echo "${HOST_ARCHIVE_LISTING}" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
+    HOST_ARCHIVES=$(listing "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
     for a in ${HOST_ARCHIVES}; do
         fetch "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/${a}" "$(basename "${a}")"
         extract "$(basename "${a}")" "${QT_HOST_DIR}"
     done
     # addons required by the app
     for addon in qt5compat qtshadertools; do
-        ADDON_LISTING=$(curl -sL "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.linux_gcc_64/" || true)
-        ADDON_ARCHIVES=$(echo "${ADDON_LISTING}" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta || true)
+        ADDON_ARCHIVES=$(listing "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.linux_gcc_64/" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
         for a in ${ADDON_ARCHIVES}; do
             fetch "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.linux_gcc_64/${a}" "$(basename "${a}")"
             extract "$(basename "${a}")" "${QT_HOST_DIR}"
         done
     done
     # icu libs are shipped separately at the repo root
-    ICU_LISTING=$(curl -sL "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/")
-    ICU_ARCHIVE=$(echo "${ICU_LISTING}" | grep -o 'href="[^"]*icu[^"]*\.7z"' | sed 's/href="//;s/"//' | head -1 || true)
+    ICU_ARCHIVE=$(listing "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/" | grep -o 'href="[^"]*icu[^"]*\.7z"' | sed 's/href="//;s/"//' | head -1)
     if [ -n "${ICU_ARCHIVE}" ]; then
         fetch "${QT_HOST_REPO_URL}/qt.qt6.${QT_TAG}.linux_gcc_64/${ICU_ARCHIVE}" "$(basename "${ICU_ARCHIVE}")"
         extract "$(basename "${ICU_ARCHIVE}")" "${QT_HOST_DIR}"
@@ -81,15 +85,13 @@ fi
 QT_ANDROID_REPO_URL="${QT_BASE}/all_os/android/${QT_TAG}/${QT_TAG}_arm64_v8a"
 if [ ! -f "${QT_ANDROID_DIR}/lib/libQt6Core_arm64-v8a.so" ]; then
     echo "== Installing Qt for Android ${QT_VERSION} (arm64-v8a) =="
-    AND_LISTING=$(curl -sL "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.android_arm64_v8a/")
-    AND_ARCHIVES=$(echo "${AND_LISTING}" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
+    AND_ARCHIVES=$(listing "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.android_arm64_v8a/" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
     for a in ${AND_ARCHIVES}; do
         fetch "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.android_arm64_v8a/${a}" "$(basename "${a}")"
         extract "$(basename "${a}")" "${QT_ANDROID_DIR}"
     done
     for addon in qt5compat qtshadertools; do
-        ADDON_LISTING=$(curl -sL "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.android_arm64_v8a/" || true)
-        ADDON_ARCHIVES=$(echo "${ADDON_LISTING}" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta || true)
+        ADDON_ARCHIVES=$(listing "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.android_arm64_v8a/" | grep -o 'href="[^"]*\.7z"' | sed 's/href="//;s/"//' | grep -v meta)
         for a in ${ADDON_ARCHIVES}; do
             fetch "${QT_ANDROID_REPO_URL}/qt.qt6.${QT_TAG}.addons.${addon}.android_arm64_v8a/${a}" "$(basename "${a}")"
             extract "$(basename "${a}")" "${QT_ANDROID_DIR}"
