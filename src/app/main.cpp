@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         qputenv("QT_QUICK_FLICKABLE_WHEEL_DECELERATION", "5000");
     }
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     if (qEnvironmentVariable("MU_QT_QPA_PLATFORM") != "offscreen") {
         qputenv("QT_QPA_PLATFORMTHEME", "gtk3");
     }
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
     QCoreApplication::setOrganizationDomain("musescore.org");
     QCoreApplication::setApplicationVersion(MUSE_APP_VERSION);
 
-#if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM)
+#if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
     // Any OS that uses Freedesktop.org Desktop Entry Specification (e.g. Linux, BSD)
 #ifndef MUSE_APP_INSTALL_SUFFIX
 #define MUSE_APP_INSTALL_SUFFIX ""

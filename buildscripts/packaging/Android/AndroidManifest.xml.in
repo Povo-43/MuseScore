@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+    SPDX-License-Identifier: GPL-3.0-only
+    MuseScore-Studio-CLA-applies
+
+    Android manifest template for MuseScore Studio.
+-->
+<manifest package="@ANDROID_PACKAGE_NAME@"
+          xmlns:android="http://schemas.android.com/apk/res/android"
+          android:versionCode="@ANDROID_VERSION_CODE@"
+          android:versionName="@ANDROID_VERSION_NAME@"
+          android:installLocation="auto">
+
+    <uses-sdk android:minSdkVersion="@ANDROID_MIN_SDK_VERSION@" android:targetSdkVersion="@ANDROID_TARGET_SDK_VERSION@"/>
+
+    <!-- Qt Network (MuseScore.com, translations downloads, etc) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Playback continues in background is not used, no special permissions required -->
+
+    <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
+
+    <application android:name="org.qtproject.qt.android.application.QtApplication"
+                 android:label="@ANDROID_APP_LABEL@"
+                 android:icon="@mipmap/ic_launcher"
+                 android:hardwareAccelerated="true"
+                 android:allowBackup="true"
+                 android:supportsRtl="true"
+                 android:usesCleartextTraffic="false">
+
+        <activity android:name="org.qtproject.qt.android.activity.QtActivity"
+                  android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|keyboard|keyboardHidden|navigation"
+                  android:label="@ANDROID_APP_LABEL@"
+                  android:launchMode="singleTop"
+                  android:screenOrientation="fullSensor"
+                  android:exported="true"
+                  android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+                  android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- Open score files from file managers and other apps -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.recordare.musicxml"/>
+                <data android:mimeType="application/vnd.recordare.musicxml+xml"/>
+                <data android:mimeType="application/x-musescore"/>
+                <data android:mimeType="application/octet-stream"/>
+                <data android:mimeType="audio/midi"/>
+            </intent-filter>
+
+            <meta-data android:name="android.app.lib_name" android:value="@ANDROID_LIB_NAME@"/>
+            <meta-data android:name="android.app.background_running" android:value="false"/>
+        </activity>
+    </application>
+</manifest>

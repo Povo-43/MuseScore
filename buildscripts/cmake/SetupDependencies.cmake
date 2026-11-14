@@ -25,6 +25,12 @@ if (NOT EXISTS "${EXTDEPS_DIR}/buildtools/manifest.cmake")
     message(FATAL_ERROR "muse_deps submodule missing, run: git submodule update --init muse_deps")
 endif()
 
+# When cross-compiling for Android there are no prebuilt packages,
+# the deps are built from source; use the android flavor (static builds).
+if (OS_IS_ANDROID AND NOT DEFINED LIB_OS)
+    set(LIB_OS "android")
+endif()
+
 set(LOCAL_ROOT_PATH ${FETCHCONTENT_BASE_DIR})
 include(${EXTDEPS_DIR}/buildtools/manifest.cmake)
 

@@ -1,0 +1,157 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# MuseScore-Studio-CLA-applies
+#
+# Builds MuseScore Studio for Android (arm64-v8a) as a single APK
+# and publishes it as a GitHub release.
+
+name: Android APK
+
+on:
+  push:
+    branches: [main, android-apk]
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish a GitHub release with the APK'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: 6.10.0
+  ANDROID_NDK_VERSION: 27.0.12077973
+  ANDROID_PLATFORM: android-26
+
+jobs:
+  build-apk:
+    name: Build Android APK (arm64-v8a)
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk/ndk-bundle \
+                      /usr/local/lib/android/sdk/emulator \
+                      /usr/local/lib/android/sdk/tools \
+                      /usr/local/lib/android/sdk/cmdline-tools/8.0 \
+                      /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL \
+                      /usr/share/dotnet /usr/local/share/boost \
+                      /opt/java/graalvm /usr/lib/jvm/graalvm* \
+                      /usr/local/lib/node_modules /usr/share/swift
+          sudo docker image prune -af > /dev/null 2>&1 || true
+          df -h /
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ccache ninja-build patchelf
+          python3 -m pip install --break-system-packages py7zr
+          echo "CCACHE_DIR=$(ccache -k cache_dir 2>/dev/null || echo ~/.cache/ccache)" >> $GITHUB_ENV
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Qt and Android SDK/NDK
+        run: |
+          chmod +x buildscripts/android/setup_env.sh
+          QT_VERSION="${QT_VERSION}" \
+          ANDROID_NDK_VERSION="${ANDROID_NDK_VERSION}" \
+          ANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+          ./buildscripts/android/setup_env.sh
+          cat /tmp/qt-android-env.sh >> $GITHUB_ENV
+          df -h /
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-android-${{ runner.os }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            ccache-android-${{ runner.os }}-qt${{ env.QT_VERSION }}-
+
+      - name: Configure
+        run: |
+          source /tmp/qt-android-env.sh
+          cmake -S . -B build -GNinja \
+            -DCMAKE_TOOLCHAIN_FILE="${QT_ANDROID_DIR}/lib/cmake/Qt6/qt.toolchain.cmake" \
+            -DQT_HOST_PATH="${QT_HOST_DIR}" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=${ANDROID_PLATFORM} \
+            -DANDROID_NDK_ROOT="${ANDROID_NDK_ROOT}" \
+            -DANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMUSESCORE_BUILD_CONFIGURATION=app \
+            -DMUSE_APP_BUILD_MODE=release \
+            -DMUE_DOWNLOAD_SOUNDFONT=OFF \
+            -DMUSE_ENABLE_UNIT_TESTS=OFF
+
+      - name: Build APK
+        run: |
+          source /tmp/qt-android-env.sh
+          cmake --build build --parallel $(nproc) 2>&1 | tail -100
+          find build -name "*.apk" -maxdepth 3 | head -5
+          ccache --show-stats
+          df -h /
+
+      - name: Sign APK
+        run: |
+          source /tmp/qt-android-env.sh
+          APK=$(find build -name "*.apk" -maxdepth 3 | head -1)
+          if [ -z "${APK}" ]; then
+            echo "No APK found"; exit 1
+          fi
+          OUT="MuseScoreStudio-Android-arm64.apk"
+          BUILD_TOOLS="${ANDROID_HOME}/build-tools/34.0.0"
+          KEYSTORE=/tmp/musescore-android.keystore
+          if [ ! -f "${KEYSTORE}" ]; then
+            keytool -genkeypair -v -keystore "${KEYSTORE}" -alias musescore \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass musescore-android -keypass musescore-android \
+              -dname "CN=MuseScore Android, OU=MuseScore, O=MuseScore, L=Cyberspace, C=OO"
+          fi
+          "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}"
+          "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
+            --ks-pass pass:musescore-android --key-pass pass:musescore-android \
+            --out "${OUT}" "${OUT}"
+          "${BUILD_TOOLS}/apksigner" verify "${OUT}"
+          ls -lh "${OUT}"
+          echo "APK_FILE=${OUT}" >> $GITHUB_ENV
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuseScoreStudio-Android-arm64
+          path: MuseScoreStudio-Android-arm64.apk
+          if-no-files-found: error
+
+      - name: Create release
+        if: ${{ github.event_name == 'push' || github.event.inputs.publish_release == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="android-alpha.${{ github.run_number }}"
+          gh release create "${TAG}" "${APK_FILE}" \
+            --title "MuseScore Studio for Android (arm64) — alpha ${TAG}" \
+            --notes "Experimental build of MuseScore Studio for Android (arm64-v8a).
+
+          - Qt 6.10, AAudio audio output
+          - Bundled resources (soundfont, templates, styles) are copied into app storage on first launch
+          - Not available: MuseSampler/MuseSounds, VST, MuseScore.com cloud, printing (PDF export is available through export)
+          - Self-signed APK: install by allowing installation from unknown sources" \
+            --prerelease

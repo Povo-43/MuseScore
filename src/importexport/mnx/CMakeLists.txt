@@ -32,6 +32,9 @@ else()
                             "DependencyManifest.cmake must run before this module")
     endif()
     list(PREPEND CMAKE_PREFIX_PATH "${NLOHMANN_JSON_PREFIX}" "${JSON_SCHEMA_VALIDATOR_PREFIX}")
+    # When cross-compiling for Android, the toolchain restricts find_package
+    # to the find root paths, so the prefixes must be find roots as well.
+    list(PREPEND CMAKE_FIND_ROOT_PATH "${NLOHMANN_JSON_PREFIX}" "${JSON_SCHEMA_VALIDATOR_PREFIX}")
     set(USE_SYSTEM_NLOHMANN_JSON ON CACHE BOOL "" FORCE)
     set(USE_SYSTEM_JSON_SCHEMA_VALIDATOR ON CACHE BOOL "" FORCE)
     message(STATUS "Using muse_deps nlohmann_json from ${NLOHMANN_JSON_PREFIX}")

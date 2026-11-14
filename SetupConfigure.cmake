@@ -94,6 +94,29 @@ if(BUILD_CONFIGURATION STREQUAL "APP")
     set(MUSE_MODULE_AUDIO_WORKMODE 3) # driver callback + worker rpc
 endif()
 
+###########################################
+# CONFIGURE: Android
+###########################################
+if (OS_IS_ANDROID)
+    # Modules and features that are not available on Android
+    set(MUSE_MODULE_UPDATE OFF)                 # no self-update
+    set(MUSE_MODULE_CLOUD OFF)                  # no OAuth browser flow
+    set(MUSE_MODULE_MUSESAMPLER OFF)            # no prebuilt MuseSampler library for Android
+    set(MUE_BUILD_MUSESOUNDS_MODULE OFF)        # MuseSounds depends on MuseSampler
+    set(MUE_BUILD_MACOS_INTEGRATION OFF)
+    set(MUSE_MODULE_DIAGNOSTICS_CRASHPAD_CLIENT OFF)
+    set(MUSE_MODULE_AUDIO_JACK OFF)
+    set(MUSE_MODULE_AUDIO_PIPEWIRE OFF)
+    set(MUSE_MODULE_MULTIWINDOWS OFF)           # single window platform
+    set(MUE_BUILD_CONVERTER_MODULE OFF)         # console tool is not useful on Android
+    set(MUE_ENABLE_CONSOLEAPP OFF)
+    set(MUSE_MODULE_DRAW_USE_STATIC_DEPS ON)    # all deps are static on Android
+
+    if (MUE_CONFIGURATION_IS_APP)
+        set(MUSE_MODULE_AUDIO_WORKMODE 3) # driver callback + worker rpc
+    endif()
+endif()
+
 if(BUILD_CONFIGURATION STREQUAL "APP-PORTABLE")
     set(MUE_CONFIGURATION_IS_APPPORTABLE ON)
     set(MUE_GENERAL_APP ON)

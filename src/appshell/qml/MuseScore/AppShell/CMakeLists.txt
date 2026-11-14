@@ -126,9 +126,14 @@ elseif(OS_IS_WIN)
             platform/win/Main.qml
     )
 elseif(OS_IS_LIN OR OS_IS_FREEBSD)
-    qt_target_qml_sources(appshell_qml 
+    qt_target_qml_sources(appshell_qml
         QML_FILES
             platform/linux/Main.qml
+    )
+elseif(OS_IS_ANDROID)
+    qt_target_qml_sources(appshell_qml
+        QML_FILES
+            platform/android/Main.qml
     )
 else()
     message(FATAL_ERROR "Unsupported OS")

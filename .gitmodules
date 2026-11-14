@@ -1,6 +1,8 @@
 [submodule "muse_framework"]
 	path = muse
-	url = https://github.com/musescore/muse_framework.git
+	url = https://github.com/Povo-43/muse_framework.git
+	branch = android
 [submodule "muse_deps"]
 	path = muse_deps
-	url = https://github.com/musescore/muse_deps.git
+	url = https://github.com/Povo-43/muse_deps.git
+	branch = android
