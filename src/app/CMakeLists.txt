@@ -394,6 +394,26 @@ target_include_directories(MuseScoreStudio PRIVATE
 
 target_link_libraries(MuseScoreStudio PRIVATE ${LINK_LIB} ${COVERAGE_LINK_FLAGS})
 
+if (OS_IS_ANDROID)
+    # On Android all external dependencies are built statically and linked into
+    # the single app module (libmscore_arm64-v8a.so). Collect every static
+    # archive from the resolved dependency prefixes so transitive symbols
+    # (e.g. ogg_*, vorbis_*, flac_*) are resolved at link time.
+    set(ANDROID_STATIC_DEP_ARCHIVES "")
+    get_property(_consumed GLOBAL PROPERTY EXTDEPS_CONSUMED)
+    foreach(_dep ${_consumed})
+        get_property(_prefix GLOBAL PROPERTY ${_dep}_PREFIX)
+        if (_prefix AND IS_DIRECTORY "${_prefix}/lib")
+            file(GLOB _static_libs "${_prefix}/lib/*.a")
+            list(APPEND ANDROID_STATIC_DEP_ARCHIVES ${_static_libs})
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES ANDROID_STATIC_DEP_ARCHIVES)
+    if (ANDROID_STATIC_DEP_ARCHIVES)
+        target_link_libraries(MuseScoreStudio PRIVATE ${ANDROID_STATIC_DEP_ARCHIVES})
+    endif()
+endif()
+
 if (CC_IS_EMCC)
     include(exported_functions.cmake)
     target_link_options(MuseScoreStudio PRIVATE ${EMCC_LINKER_FLAGS})
