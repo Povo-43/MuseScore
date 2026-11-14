@@ -113,7 +113,8 @@ jobs:
       - name: Sign APK
         run: |
           source /tmp/qt-android-env.sh
-          APK=$(find build -name "*.apk" -maxdepth 3 | head -1)
+          # androiddeployqt nests the APK under src/app/android-build/build/outputs/apk/release/
+          APK=$(find build -name "*.apk" | head -1)
           if [ -z "${APK}" ]; then
             echo "No APK found"; exit 1
           fi
