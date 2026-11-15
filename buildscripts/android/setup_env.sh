@@ -33,9 +33,11 @@ QT_BUNDLE_URL="${QT_BUNDLE_URL:-}"
 if [ -n "${QT_BUNDLE_URL}" ] && { [ ! -x "${QT_HOST_DIR}/bin/qmake6" ] || [ ! -f "${QT_ANDROID_DIR}/lib/libQt6Core_arm64-v8a.so" ]; }; then
     echo "== Downloading Qt bundle =="
     mkdir -p /tmp/qt-bundle /opt/Qt
-    curl -fL --retry 5 --retry-all-errors --max-time 1800 -o /tmp/qt-bundle/qt.tar.zst "${QT_BUNDLE_URL}" \
-        || { echo "ERROR: failed to download the Qt bundle"; exit 1; }
-    tar --zstd -xf /tmp/qt-bundle/qt.tar.zst -C /opt
+    if curl -fL --retry 3 --retry-all-errors --max-time 1800 -o /tmp/qt-bundle/qt.tar.zst "${QT_BUNDLE_URL}"; then
+        tar --zstd -xf /tmp/qt-bundle/qt.tar.zst -C /opt
+    else
+        echo "WARNING: failed to download the Qt bundle, falling back to per-module downloads"
+    fi
 fi
 
 mkdir -p "${QT_HOST_DIR}" "${QT_ANDROID_DIR}" /tmp/qt-download
