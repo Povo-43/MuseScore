@@ -118,9 +118,6 @@ elseif(OS_IS_ANDROID)
                     ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/ic_launcher.png)
     endforeach()
 
-    configure_file(${PROJECT_SOURCE_DIR}/buildscripts/packaging/Android/AndroidManifest.xml.in
-                   ${ANDROID_PACKAGE_SOURCE_DIR}/AndroidManifest.xml @ONLY)
-
 elseif(OS_IS_FBSD)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L /usr/local/lib -lasound -lpthread")
 
