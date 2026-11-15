@@ -71,7 +71,6 @@ jobs:
           QT_VERSION="${QT_VERSION}" \
           ANDROID_NDK_VERSION="${ANDROID_NDK_VERSION}" \
           ANDROID_PLATFORM="${ANDROID_PLATFORM}" \
-          QT_BUNDLE_URL="https://github.com/Povo-43/MuseScore/releases/download/build-env/qt-android-${QT_VERSION}.tar.zst" \
           ./buildscripts/android/setup_env.sh
           cat /tmp/qt-android-env.sh >> $GITHUB_ENV
           df -h /
