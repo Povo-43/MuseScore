@@ -84,6 +84,7 @@ elseif(OS_IS_ANDROID)
     # The executable is built as a loadable module (libmscore_<abi>.so)
     # loaded by QtActivity through the "android.app.lib_name" meta-data.
 
+    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/android-package")
     set(ANDROID_PACKAGE_NAME ${MUSE_APP_GUI_IDENTIFIER})
     set(ANDROID_APP_LABEL ${MUSE_APP_NAME_HUMAN_READABLE})
     set(ANDROID_LIB_NAME ${EXECUTABLE_NAME})
@@ -91,6 +92,35 @@ elseif(OS_IS_ANDROID)
     set(ANDROID_TARGET_SDK_VERSION 34)
     set(ANDROID_VERSION_NAME ${MUSE_APP_VERSION})
     set(ANDROID_VERSION_CODE ${MUSE_APP_VERSION_MAJOR}${MUSE_APP_VERSION_MINOR}0${CMAKE_BUILD_NUMBER})
+
+    # Icons: use the bundled application icons as launcher mipmaps
+    set(APP_ICON_DIR ${PROJECT_SOURCE_DIR}/share/icons/AppIcon)
+    set(ANDROID_ICON_DIRS
+        mipmap-mdpi
+        mipmap-hdpi
+        mipmap-xhdpi
+        mipmap-xxhdpi
+        mipmap-xxxhdpi
+    )
+    set(ANDROID_ICON_SRCS
+        ${APP_ICON_DIR}/MS4_AppIcon_48x48.png
+        ${APP_ICON_DIR}/MS4_AppIcon_96x96.png
+        ${APP_ICON_DIR}/MS4_AppIcon_96x96.png
+        ${APP_ICON_DIR}/MS4_AppIcon_128x128.png
+        ${APP_ICON_DIR}/MS4_AppIcon_256x256.png
+    )
+    foreach(_dir ${ANDROID_ICON_DIRS})
+        list(FIND ANDROID_ICON_DIRS ${_dir} _idx)
+        list(GET ANDROID_ICON_SRCS ${_idx} _src)
+        file(COPY ${_src} DESTINATION ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir})
+        get_filename_component(_icon_name ${_src} NAME)
+        file(RENAME ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/${_icon_name}
+                    ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/ic_launcher.png)
+        # Round icon for Android 7.1+
+        file(COPY ${_src} DESTINATION ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir})
+        file(RENAME ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/${_icon_name}
+                    ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/ic_launcher_round.png)
+    endforeach()
 
 elseif(OS_IS_FBSD)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L /usr/local/lib -lasound -lpthread")
@@ -268,6 +298,7 @@ set_target_properties(MuseScoreStudio PROPERTIES OUTPUT_NAME ${EXECUTABLE_NAME})
 
 if (OS_IS_ANDROID)
     set_target_properties(MuseScoreStudio PROPERTIES
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${ANDROID_PACKAGE_SOURCE_DIR}
         QT_ANDROID_PACKAGE_NAME ${ANDROID_PACKAGE_NAME}
         QT_ANDROID_PACKAGE_VERSION_CODE ${ANDROID_VERSION_CODE}
         QT_ANDROID_PACKAGE_VERSION_NAME ${ANDROID_VERSION_NAME}
