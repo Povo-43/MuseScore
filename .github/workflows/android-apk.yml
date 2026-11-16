@@ -115,11 +115,14 @@ jobs:
         run: |
           source /tmp/qt-android-env.sh
           # androiddeployqt outputs the APK at build/src/app/android-build/MuseScoreStudio.apk
+          echo "=== Debug: pwd ===" && pwd
+          echo "=== Debug: find apk files ===" && find build/src/app/android-build -name "*.apk" 2>/dev/null || true
           APK="./build/src/app/android-build/MuseScoreStudio.apk"
           if [ ! -f "${APK}" ]; then
             # Fallback: find any APK from Gradle output
-            APK=$(find build/src/app/android-build -name "*.apk" | head -1)
+            APK=$(find build/src/app/android-build -name "*.apk" | head -1 || true)
           fi
+          echo "=== Debug: APK=${APK} ==="
           if [ -z "${APK}" ] || [ ! -f "${APK}" ]; then
             echo "No APK found"; exit 1
           fi
