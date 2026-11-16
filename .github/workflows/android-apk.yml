@@ -3,6 +3,7 @@
 #
 # Builds MuseScore Studio for Android (arm64-v8a) as a single APK
 # and publishes it as a GitHub release.
+# Retry: QML module deployment fix
 
 name: Android APK
 
