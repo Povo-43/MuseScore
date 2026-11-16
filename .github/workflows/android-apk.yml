@@ -152,24 +152,18 @@ jobs:
           "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}" || { echo "zipalign FAILED"; exit 1; }
 
           echo "=== Sign APK (v1+v2) ==="
-          "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
+          if ! "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
             --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
             --key-alias "${KEY_ALIAS}" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --min-sdk-version 28 \
-            --out "${OUT}" "${OUT}" 2>&1
-          SIGN_EXIT=$?
-          echo "apksigner sign exit code: $SIGN_EXIT"
-          if [ $SIGN_EXIT -ne 0 ]; then
+            --out "${OUT}" "${OUT}" 2>&1; then
             echo "apksigner sign FAILED"
             exit 1
           fi
 
           echo "=== Verify signature ==="
-          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1
-          VERIFY_EXIT=$?
-          echo "apksigner verify exit code: $VERIFY_EXIT"
-          if [ $VERIFY_EXIT -ne 0 ]; then
+          if ! "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1; then
             echo "apksigner verify FAILED"
             exit 1
           fi
