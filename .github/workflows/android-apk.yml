@@ -151,12 +151,16 @@ jobs:
           ls -la "${BUILD_TOOLS}/zipalign" "${BUILD_TOOLS}/apksigner" 2>&1 || true
           "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}" || { echo "zipalign FAILED"; exit 1; }
 
-          echo "=== Sign APK (v1+v2) ==="
+          echo "=== Sign APK ==="
+          echo "APK: ${APK}"
+          echo "APK size: $(stat -c%s "${APK}" 2>/dev/null || echo unknown)"
+          echo "KEYSTORE: ${KEYSTORE}"
+          echo "KEYSTORE size: $(stat -c%s "${KEYSTORE}" 2>/dev/null || echo unknown)"
+          echo "apksigner version:"
+          "${BUILD_TOOLS}/apksigner --version" 2>&1 || true
           if ! "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
             --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
             --key-alias "${KEY_ALIAS}" \
-            --v1-signing-enabled true --v2-signing-enabled true \
-            --min-sdk-version 28 \
             --out "${OUT}" "${OUT}" 2>&1; then
             echo "apksigner sign FAILED"
             exit 1
