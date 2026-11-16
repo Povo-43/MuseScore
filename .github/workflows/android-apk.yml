@@ -114,9 +114,13 @@ jobs:
       - name: Sign APK
         run: |
           source /tmp/qt-android-env.sh
-          # androiddeployqt nests the APK under src/app/android-build/build/outputs/apk/release/
-          APK=$(find . -name "*apk*" | head -1)
-          if [ -z "${APK}" ]; then
+          # androiddeployqt outputs the APK at build/src/app/android-build/MuseScoreStudio.apk
+          APK="./build/src/app/android-build/MuseScoreStudio.apk"
+          if [ ! -f "${APK}" ]; then
+            # Fallback: find any APK from Gradle output
+            APK=$(find build/src/app/android-build -name "*.apk" | head -1)
+          fi
+          if [ -z "${APK}" ] || [ ! -f "${APK}" ]; then
             echo "No APK found"; exit 1
           fi
           OUT="MuseScoreStudio-Android-arm64.apk"
