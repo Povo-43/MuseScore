@@ -8,9 +8,11 @@
 # Usage (script mode):
 #   cmake -DQML_DEST_DIR=<dest> -P CopyQmlModules.cmake
 
-if (NOT QML_DEST_DIR)
+if (NOT DEFINED ENV{QML_DEST_DIR})
     message(FATAL_ERROR "QML_DEST_DIR not set")
 endif()
+
+set(QML_DEST_DIR "$ENV{QML_DEST_DIR}")
 
 file(MAKE_DIRECTORY "${QML_DEST_DIR}")
 

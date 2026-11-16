@@ -326,8 +326,7 @@ if (OS_IS_ANDROID)
     # app gets stuck on the splash screen.
     set(ANDROID_QML_DIR ${ANDROID_PACKAGE_SOURCE_DIR}/qml)
     add_custom_target(android_qml_modules
-        COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/buildscripts/packaging/Android/CopyQmlModules.cmake
-            -DQML_DEST_DIR=${ANDROID_QML_DIR}
+        COMMAND ${CMAKE_COMMAND} -E env QML_DEST_DIR=${ANDROID_QML_DIR} ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/buildscripts/packaging/Android/CopyQmlModules.cmake
         COMMENT "Copying QML modules for Android APK"
         VERBATIM
     )
