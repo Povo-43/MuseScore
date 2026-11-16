@@ -115,20 +115,15 @@ jobs:
         run: |
           source /tmp/qt-android-env.sh
           # androiddeployqt outputs the APK at build/src/app/android-build/MuseScoreStudio.apk
-          set +e
-          echo "=== Debug: pwd ===" && pwd
-          echo "=== Debug: ls build/src/app ===" && ls -la build/src/app/ 2>/dev/null || true
-          echo "=== Debug: find apk ===" && find build/src/app/android-build -name "*.apk" 2>/dev/null || true
           APK="./build/src/app/android-build/MuseScoreStudio.apk"
-          echo "=== Debug: test -f APK ===" && test -f "${APK}" && echo "EXISTS" || echo "NOT_EXISTS"
           if [ ! -f "${APK}" ]; then
             # Fallback: find any APK from Gradle output
             APK=$(find build/src/app/android-build -name "*.apk" | head -1 || true)
           fi
-          echo "=== Debug: APK=${APK} ==="
           if [ -z "${APK}" ] || [ ! -f "${APK}" ]; then
             echo "No APK found"; exit 1
           fi
+          echo "=== Signing APK: ${APK} ==="
           OUT="MuseScoreStudio-Android-arm64.apk"
           BUILD_TOOLS="${ANDROID_HOME}/build-tools/34.0.0"
 
@@ -152,12 +147,21 @@ jobs:
             KEY_PASS=musescore-android
           fi
 
+          echo "=== Zipalign ==="
           "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}"
+
+          echo "=== Sign APK (v1+v2) ==="
           "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
             --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
             --key-alias "${KEY_ALIAS}" \
+            --v1-signing-enabled true --v2-signing-enabled true \
+            --min-sdk-version 28 \
             --out "${OUT}" "${OUT}"
+
+          echo "=== Verify signature ==="
           "${BUILD_TOOLS}/apksigner" verify "${OUT}"
+          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}"
+
           ls -lh "${OUT}"
           echo "APK_FILE=${OUT}" >> $GITHUB_ENV
 
