@@ -157,10 +157,22 @@ jobs:
             --key-alias "${KEY_ALIAS}" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --min-sdk-version 28 \
-            --out "${OUT}" "${OUT}" 2>&1 || { echo "apksigner sign FAILED"; exit 1; }
+            --out "${OUT}" "${OUT}" 2>&1
+          SIGN_EXIT=$?
+          echo "apksigner sign exit code: $SIGN_EXIT"
+          if [ $SIGN_EXIT -ne 0 ]; then
+            echo "apksigner sign FAILED"
+            exit 1
+          fi
 
           echo "=== Verify signature ==="
-          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1 || { echo "apksigner verify FAILED"; exit 1; }
+          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1
+          VERIFY_EXIT=$?
+          echo "apksigner verify exit code: $VERIFY_EXIT"
+          if [ $VERIFY_EXIT -ne 0 ]; then
+            echo "apksigner verify FAILED"
+            exit 1
+          fi
 
           ls -lh "${OUT}"
           echo "APK_FILE=${OUT}" >> $GITHUB_ENV
