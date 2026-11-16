@@ -148,7 +148,8 @@ jobs:
           fi
 
           echo "=== Zipalign ==="
-          "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}"
+          ls -la "${BUILD_TOOLS}/zipalign" "${BUILD_TOOLS}/apksigner" 2>&1 || true
+          "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}" || { echo "zipalign FAILED"; exit 1; }
 
           echo "=== Sign APK (v1+v2) ==="
           "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
@@ -156,11 +157,10 @@ jobs:
             --key-alias "${KEY_ALIAS}" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --min-sdk-version 28 \
-            --out "${OUT}" "${OUT}"
+            --out "${OUT}" "${OUT}" 2>&1 || { echo "apksigner sign FAILED"; exit 1; }
 
           echo "=== Verify signature ==="
-          "${BUILD_TOOLS}/apksigner" verify "${OUT}"
-          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}"
+          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1 || { echo "apksigner verify FAILED"; exit 1; }
 
           ls -lh "${OUT}"
           echo "APK_FILE=${OUT}" >> $GITHUB_ENV
