@@ -107,7 +107,7 @@ jobs:
         run: |
           source /tmp/qt-android-env.sh
           cmake --build build --parallel $(nproc) 2>&1 | tail -100
-          find build -name "*apk*" | head -5
+          find . -name "*apk*" | head -10
           ccache --show-stats
           df -h /
 
@@ -115,7 +115,7 @@ jobs:
         run: |
           source /tmp/qt-android-env.sh
           # androiddeployqt nests the APK under src/app/android-build/build/outputs/apk/release/
-          APK=$(find build -name "*apk*" | head -1)
+          APK=$(find . -name "*apk*" | head -1)
           if [ -z "${APK}" ]; then
             echo "No APK found"; exit 1
           fi
