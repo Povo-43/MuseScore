@@ -116,7 +116,15 @@ elseif(OS_IS_ANDROID)
         get_filename_component(_icon_name ${_src} NAME)
         file(RENAME ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/${_icon_name}
                     ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/ic_launcher.png)
+        # Round icon for Android 7.1+
+        file(COPY ${_src} DESTINATION ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir})
+        file(RENAME ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/${_icon_name}
+                    ${ANDROID_PACKAGE_SOURCE_DIR}/res/${_dir}/ic_launcher_round.png)
     endforeach()
+
+    # Manifest template -> generated manifest (so QtApplication + icon are bundled correctly)
+    configure_file(${PROJECT_SOURCE_DIR}/buildscripts/packaging/Android/AndroidManifest.xml.in
+                   ${ANDROID_PACKAGE_SOURCE_DIR}/AndroidManifest.xml @ONLY)
 
 elseif(OS_IS_FBSD)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L /usr/local/lib -lasound -lpthread")
@@ -295,6 +303,7 @@ set_target_properties(MuseScoreStudio PROPERTIES OUTPUT_NAME ${EXECUTABLE_NAME})
 if (OS_IS_ANDROID)
     set_target_properties(MuseScoreStudio PROPERTIES
         QT_ANDROID_PACKAGE_SOURCE_DIR ${ANDROID_PACKAGE_SOURCE_DIR}
+        QT_ANDROID_MANIFEST ${ANDROID_PACKAGE_SOURCE_DIR}/AndroidManifest.xml
         QT_ANDROID_PACKAGE_NAME ${ANDROID_PACKAGE_NAME}
         QT_ANDROID_PACKAGE_VERSION_CODE ${ANDROID_VERSION_CODE}
         QT_ANDROID_PACKAGE_VERSION_NAME ${ANDROID_VERSION_NAME}

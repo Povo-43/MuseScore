@@ -121,16 +121,31 @@ jobs:
           fi
           OUT="MuseScoreStudio-Android-arm64.apk"
           BUILD_TOOLS="${ANDROID_HOME}/build-tools/34.0.0"
-          KEYSTORE=/tmp/musescore-android.keystore
-          if [ ! -f "${KEYSTORE}" ]; then
-            keytool -genkeypair -v -keystore "${KEYSTORE}" -alias musescore \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass musescore-android -keypass musescore-android \
-              -dname "CN=MuseScore Android, OU=MuseScore, O=MuseScore, L=Cyberspace, C=OO"
+
+          # Use signing key from GitHub Secrets if provided, otherwise generate a throwaway one
+          if [ -n "${ANDROID_KEYSTORE_BASE64}" ]; then
+            KEYSTORE=/tmp/musescore-android.keystore
+            echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "${KEYSTORE}"
+            KEYSTORE_PASS="${ANDROID_KEYSTORE_PASSWORD}"
+            KEY_ALIAS="${ANDROID_KEY_ALIAS}"
+            KEY_PASS="${ANDROID_KEY_PASSWORD}"
+          else
+            KEYSTORE=/tmp/musescore-android.keystore
+            if [ ! -f "${KEYSTORE}" ]; then
+              keytool -genkeypair -v -keystore "${KEYSTORE}" -alias musescore \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass musescore-android -keypass musescore-android \
+                -dname "CN=MuseScore Android, OU=MuseScore, O=MuseScore, L=Cyberspace, C=OO"
+            fi
+            KEYSTORE_PASS=musescore-android
+            KEY_ALIAS=musescore
+            KEY_PASS=musescore-android
           fi
+
           "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}"
           "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
-            --ks-pass pass:musescore-android --key-pass pass:musescore-android \
+            --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
+            --key-alias "${KEY_ALIAS}" \
             --out "${OUT}" "${OUT}"
           "${BUILD_TOOLS}/apksigner" verify "${OUT}"
           ls -lh "${OUT}"
