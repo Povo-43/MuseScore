@@ -173,7 +173,7 @@ jobs:
           java -version 2>&1 || true
           if "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
             --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
-            --key-alias "${KEY_ALIAS}" \
+            --ks-key-alias "${KEY_ALIAS}" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --min-sdk-version 28 \
             --out "${OUT}" "${OUT}" 2>&1; then
