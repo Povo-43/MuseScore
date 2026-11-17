@@ -153,8 +153,8 @@ jobs:
 
           echo "=== Sign APK (jarsigner v1) ==="
           if ! jarsigner -keystore "${KEYSTORE}" \
-            -storepass pass:"${KEYSTORE_PASS}" \
-            -keypass pass:"${KEY_PASS}" \
+            -storepass "${KEYSTORE_PASS}" \
+            -keypass "${KEY_PASS}" \
             "${OUT}" "${KEY_ALIAS}" 2>&1; then
             echo "jarsigner sign FAILED"
             exit 1
