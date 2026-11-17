@@ -160,13 +160,13 @@ jobs:
             exit 1
           fi
 
-          echo "=== Verify signature ==="
+          echo "=== Verify jarsigner signature ==="
           if ! jarsigner -verify -verbose -keystore "${KEYSTORE}" "${OUT}" 2>&1; then
             echo "jarsigner verify FAILED"
             exit 1
           fi
 
-          echo "=== Try apksigner v2 signature (if available) ==="
+          echo "=== Add apksigner v2 signature (if available) ==="
           echo "apksigner --version:"
           "${BUILD_TOOLS}/apksigner" --version 2>&1 || true
           echo "java version:"
@@ -181,6 +181,9 @@ jobs:
           else
             echo "apksigner v2 sign FAILED, keeping v1-only APK from jarsigner"
           fi
+
+          echo "=== Final verify ==="
+          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1 || true
 
           echo "=== Debug: file type ==="
           file "${OUT}" 2>&1 || true
