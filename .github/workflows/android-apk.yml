@@ -166,6 +166,15 @@ jobs:
             exit 1
           fi
 
+          echo "=== Debug: file type ==="
+          file "${OUT}" 2>&1 || true
+          echo "=== Debug: zip test ==="
+          unzip -t "${OUT}" 2>&1 | head -20 || true
+          echo "=== Debug: first entries ==="
+          unzip -l "${OUT}" 2>&1 | head -10 || true
+          echo "=== Debug: manifest ==="
+          unzip -p "${OUT}" AndroidManifest.xml 2>&1 | head -5 || true
+
           ls -lh "${OUT}"
           echo "APK_FILE=${OUT}" >> $GITHUB_ENV
 
