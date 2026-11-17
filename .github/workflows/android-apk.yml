@@ -167,18 +167,19 @@ jobs:
           fi
 
           echo "=== Try apksigner v2 signature (if available) ==="
-          if "${BUILD_TOOLS}/apksigner" --version >/dev/null 2>&1; then
-            echo "apksigner available, adding v2 signature..."
-            if ! "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
-              --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
-              --key-alias "${KEY_ALIAS}" \
-              --v1-signing-enabled false --v2-signing-enabled true \
-              --min-sdk-version 28 \
-              --out "${OUT}" "${OUT}" 2>&1; then
-              echo "apksigner v2 sign FAILED, keeping v1-only APK"
-            fi
+          echo "apksigner --version:"
+          "${BUILD_TOOLS}/apksigner" --version 2>&1 || true
+          echo "java version:"
+          java -version 2>&1 || true
+          if "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
+            --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
+            --key-alias "${KEY_ALIAS}" \
+            --v1-signing-enabled true --v2-signing-enabled true \
+            --min-sdk-version 28 \
+            --out "${OUT}" "${OUT}" 2>&1; then
+            echo "apksigner v2 sign SUCCESS"
           else
-            echo "apksigner not available, keeping v1-only APK"
+            echo "apksigner v2 sign FAILED, keeping v1-only APK from jarsigner"
           fi
 
           echo "=== Debug: file type ==="
