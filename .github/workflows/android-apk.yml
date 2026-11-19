@@ -151,46 +151,27 @@ jobs:
           ls -la "${BUILD_TOOLS}/zipalign" "${BUILD_TOOLS}/apksigner" 2>&1 || true
           "${BUILD_TOOLS}/zipalign" -f 4 "${APK}" "${OUT}" || { echo "zipalign FAILED"; exit 1; }
 
-          echo "=== Sign APK (jarsigner v1) ==="
-          if ! jarsigner -keystore "${KEYSTORE}" \
-            -storepass "${KEYSTORE_PASS}" \
-            -keypass "${KEY_PASS}" \
-            "${OUT}" "${KEY_ALIAS}" 2>&1; then
-            echo "jarsigner sign FAILED"
-            exit 1
-          fi
-
-          echo "=== Verify jarsigner signature ==="
-          if ! jarsigner -verify -verbose -keystore "${KEYSTORE}" "${OUT}" 2>&1; then
-            echo "jarsigner verify FAILED"
-            exit 1
-          fi
-
-          echo "=== Add apksigner v2 signature (if available) ==="
-          echo "apksigner --version:"
-          "${BUILD_TOOLS}/apksigner" --version 2>&1 || true
-          echo "java version:"
-          java -version 2>&1 || true
-          if "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
+          echo "=== Sign APK (apksigner v1+v2) ==="
+          if ! "${BUILD_TOOLS}/apksigner" sign --ks "${KEYSTORE}" \
             --ks-pass pass:"${KEYSTORE_PASS}" --key-pass pass:"${KEY_PASS}" \
             --ks-key-alias "${KEY_ALIAS}" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --min-sdk-version 28 \
             --out "${OUT}" "${OUT}" 2>&1; then
-            echo "apksigner v2 sign SUCCESS"
-          else
-            echo "apksigner v2 sign FAILED, keeping v1-only APK from jarsigner"
+            echo "apksigner sign FAILED"
+            exit 1
           fi
 
-          echo "=== Final verify ==="
-          "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1 || true
+          echo "=== Verify signature ==="
+          if ! "${BUILD_TOOLS}/apksigner" verify --verbose "${OUT}" 2>&1; then
+            echo "apksigner verify FAILED"
+            exit 1
+          fi
 
           echo "=== Debug: file type ==="
           file "${OUT}" 2>&1 || true
           echo "=== Debug: zip test ==="
           unzip -t "${OUT}" 2>&1 | head -20 || true
-          echo "=== Debug: first entries ==="
-          unzip -l "${OUT}" 2>&1 | head -20 || true
           echo "=== Debug: classes.dex ==="
           unzip -l "${OUT}" 2>&1 | grep -i "classes.dex\|resources.arsc\|AndroidManifest" || true
           echo "=== Debug: manifest ==="
