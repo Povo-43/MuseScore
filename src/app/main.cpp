@@ -27,6 +27,14 @@
 #include <QQuickWindow>
 #include <QSslSocket>
 
+#ifdef Q_OS_ANDROID
+#include <QDateTime>
+#include <QFile>
+#include <QTextStream>
+#include <QStandardPaths>
+#include <QDir>
+#endif
+
 #include "appfactory.h"
 #include "internal/commandlineparser.h"
 #include "global/iapplication.h"
@@ -35,6 +43,30 @@
 #include "app_config.h"
 
 #include "log.h"
+
+#ifdef Q_OS_ANDROID
+static QFile* s_logFile = nullptr;
+static QTextStream* s_logStream = nullptr;
+
+static void androidMessageHandler(QtMsgType type, const QMessageLogContext& /*context*/, const QString& msg)
+{
+    if (!s_logFile || !s_logStream) {
+        return;
+    }
+    QByteArray localMsg = msg.toLocal8Bit();
+    const char* typeStr = "Debug";
+    switch (type) {
+    case QtInfoMsg:   typeStr = "Info";   break;
+    case QtWarningMsg: typeStr = "Warning"; break;
+    case QtCriticalMsg: typeStr = "Critical"; break;
+    case QtFatalMsg:   typeStr = "Fatal";   break;
+    default:           typeStr = "Debug";   break;
+    }
+    fprintf(stderr, "[%s] %s\n", typeStr, localMsg.constData());
+    *s_logStream << "[" << typeStr << "] " << localMsg.constData() << "\n";
+    s_logStream->flush();
+}
+#endif // Q_OS_ANDROID
 
 // C++20 check
 // #include <concepts>
@@ -128,6 +160,27 @@ int main(int argc, char** argv)
     QCoreApplication::setOrganizationName("MuseScore");
     QCoreApplication::setOrganizationDomain("musescore.org");
     QCoreApplication::setApplicationVersion(MUSE_APP_VERSION);
+
+#ifdef Q_OS_ANDROID
+    // Set up file logging to app-private directory
+    QString logDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir().mkpath(logDir);
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    QString logPath = logDir + QDir::separator() + "muse_" + timestamp + ".log";
+    s_logFile = new QFile(logPath);
+    if (s_logFile->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        s_logStream = new QTextStream(s_logFile);
+        *s_logStream << "=== MuseScore Android Log Started at "
+                     << QDateTime::currentDateTime().toString(Qt::ISODate) << " ===\n";
+        s_logStream->flush();
+        qInstallMessageHandler(androidMessageHandler);
+        LOGI() << "Log file: " << logPath;
+    } else {
+        LOGE() << "Failed to open log file: " << logPath;
+        delete s_logFile;
+        s_logFile = nullptr;
+    }
+#endif // Q_OS_ANDROID
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
     // Any OS that uses Freedesktop.org Desktop Entry Specification (e.g. Linux, BSD)
