@@ -95,6 +95,15 @@ __attribute__((constructor)) static void androidEarlyLog()
 }
 #endif // Q_OS_ANDROID
 
+#include "appfactory.h"
+#include "internal/commandlineparser.h"
+#include "global/iapplication.h"
+
+#include "muse_framework_config.h"
+#include "app_config.h"
+
+#include "log.h"
+
 // C++20 check
 // #include <concepts>
 // #include <type_traits>
