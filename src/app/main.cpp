@@ -36,18 +36,11 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
-#endif
 
-#include "appfactory.h"
-#include "internal/commandlineparser.h"
-#include "global/iapplication.h"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "muse_framework_config.h"
-#include "app_config.h"
-
-#include "log.h"
-
-#ifdef Q_OS_ANDROID
 static FILE* s_logFile = nullptr;
 
 static void androidLogToFile(const char* msg)
@@ -73,6 +66,32 @@ static void androidMessageHandler(QtMsgType type, const QMessageLogContext& /*co
     char buffer[4096];
     snprintf(buffer, sizeof(buffer), "[%s] %s", typeStr, localMsg.constData());
     androidLogToFile(buffer);
+}
+
+// Earliest possible logging: constructor runs before main()
+// Writes to multiple possible locations to maximize chance of success
+__attribute__((constructor)) static void androidEarlyLog()
+{
+    const char* paths[] = {
+        "/data/data/org.musescore.MuseScoreStudio5/files/muse_boot.log",
+        "/data/local/tmp/muse_boot.log",
+        "/sdcard/Android/data/org.musescore.MuseScoreStudio5/files/muse_boot.log",
+        "/storage/emulated/0/Android/data/org.musescore.MuseScoreStudio5/files/muse_boot.log",
+        nullptr
+    };
+
+    for (int i = 0; paths[i] != nullptr; ++i) {
+        FILE* f = fopen(paths[i], "wb");
+        if (f) {
+            fprintf(f, "=== MuseScore Android Process Start ===\n");
+            fprintf(f, "PID: %d\n", (int)getpid());
+            fprintf(f, "UID: %d\n", (int)getuid());
+            fprintf(f, "Constructor reached!\n");
+            fflush(f);
+            fclose(f);
+            break;
+        }
+    }
 }
 #endif // Q_OS_ANDROID
 
