@@ -21,6 +21,8 @@
  */
 
 #include <csignal>
+#include <cstdio>
+#include <cstring>
 
 #include <QApplication>
 #include <QStyleHints>
@@ -33,6 +35,7 @@
 #include <QTextStream>
 #include <QStandardPaths>
 #include <QDir>
+#include <QFileInfo>
 #endif
 
 #include "appfactory.h"
@@ -45,14 +48,19 @@
 #include "log.h"
 
 #ifdef Q_OS_ANDROID
-static QFile* s_logFile = nullptr;
-static QTextStream* s_logStream = nullptr;
+static FILE* s_logFile = nullptr;
+
+static void androidLogToFile(const char* msg)
+{
+    if (!s_logFile) return;
+    fprintf(s_logFile, "%s\n", msg);
+    fflush(s_logFile);
+    fprintf(stderr, "%s\n", msg);
+}
 
 static void androidMessageHandler(QtMsgType type, const QMessageLogContext& /*context*/, const QString& msg)
 {
-    if (!s_logFile || !s_logStream) {
-        return;
-    }
+    if (!s_logFile) return;
     QByteArray localMsg = msg.toLocal8Bit();
     const char* typeStr = "Debug";
     switch (type) {
@@ -62,9 +70,9 @@ static void androidMessageHandler(QtMsgType type, const QMessageLogContext& /*co
     case QtFatalMsg:   typeStr = "Fatal";   break;
     default:           typeStr = "Debug";   break;
     }
-    fprintf(stderr, "[%s] %s\n", typeStr, localMsg.constData());
-    *s_logStream << "[" << typeStr << "] " << localMsg.constData() << "\n";
-    s_logStream->flush();
+    char buffer[4096];
+    snprintf(buffer, sizeof(buffer), "[%s] %s", typeStr, localMsg.constData());
+    androidLogToFile(buffer);
 }
 #endif // Q_OS_ANDROID
 
@@ -162,28 +170,43 @@ int main(int argc, char** argv)
     QCoreApplication::setApplicationVersion(MUSE_APP_VERSION);
 
 #ifdef Q_OS_ANDROID
-    // Set up file logging to app-private directory
-    QString logDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir().mkpath(logDir);
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    QString logPath = logDir + QDir::separator() + "muse_" + timestamp + ".log";
-    s_logFile = new QFile(logPath);
-    if (s_logFile->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        s_logStream = new QTextStream(s_logFile);
-        *s_logStream << "=== MuseScore Android Log Started at "
-                     << QDateTime::currentDateTime().toString(Qt::ISODate) << " ===\n";
-        s_logStream->flush();
-        qInstallMessageHandler(androidMessageHandler);
-        LOGI() << "Log file: " << logPath;
-    } else {
-        LOGE() << "Failed to open log file: " << logPath;
-        delete s_logFile;
-        s_logFile = nullptr;
+    // Set up file logging to app-private directory and external storage
+    QStringList logDirs;
+    logDirs << QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+            << QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+            << QString("/sdcard/Android/data/org.musescore.MuseScoreStudio5/files")
+            << QString("/storage/emulated/0/Android/data/org.musescore.MuseScoreStudio5/files");
+
+    QString logPath;
+    for (const QString& dir : logDirs) {
+        if (dir.isEmpty()) continue;
+        QDir dirObj(dir);
+        if (dirObj.mkpath(dir)) {
+            QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+            QString candidate = dir + QDir::separator() + "muse_" + timestamp + ".log";
+            FILE* testFile = fopen(qPrintable(candidate), "wb");
+            if (testFile) {
+                fclose(testFile);
+                QFile::remove(candidate);
+                logPath = candidate;
+                break;
+            }
+        }
     }
 
-    // Also log to stderr for immediate visibility via adb logcat
-    fprintf(stderr, "=== MuseScore Android started ===\n");
-    fprintf(stderr, "Log path: %s\n", qPrintable(logPath));
+    s_logFile = fopen(qPrintable(logPath), "wb");
+    if (s_logFile) {
+        androidLogToFile("=== MuseScore Android Log Started ===");
+        androidLogToFile(QString("Log path: %1").arg(logPath).toLocal8Bit().constData());
+        androidLogToFile(QString("App data location: %1").arg(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)).toLocal8Bit().constData());
+        androidLogToFile(QString("Documents location: %1").arg(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toLocal8Bit().constData());
+
+        // Redirect Qt's logging to our file
+        qInstallMessageHandler(androidMessageHandler);
+    } else {
+        fprintf(stderr, "=== MuseScore Android Log Start FAILED ===\n");
+        fprintf(stderr, "Cannot open log file at: %s\n", qPrintable(logPath));
+    }
 #endif // Q_OS_ANDROID
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
