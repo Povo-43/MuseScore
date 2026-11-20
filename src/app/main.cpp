@@ -180,6 +180,10 @@ int main(int argc, char** argv)
         delete s_logFile;
         s_logFile = nullptr;
     }
+
+    // Also log to stderr for immediate visibility via adb logcat
+    fprintf(stderr, "=== MuseScore Android started ===\n");
+    fprintf(stderr, "Log path: %s\n", qPrintable(logPath));
 #endif // Q_OS_ANDROID
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
