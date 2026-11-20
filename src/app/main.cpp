@@ -81,6 +81,16 @@ __attribute__((constructor)) static void androidEarlyLog()
     };
 
     for (int i = 0; paths[i] != nullptr; ++i) {
+        // Try creating parent directory first
+        char dirBuf[512];
+        strncpy(dirBuf, paths[i], sizeof(dirBuf) - 1);
+        dirBuf[sizeof(dirBuf) - 1] = '\0';
+        char* lastSlash = strrchr(dirBuf, '/');
+        if (lastSlash) {
+            *lastSlash = '\0';
+            mkdir(dirBuf, 0755);
+        }
+
         FILE* f = fopen(paths[i], "wb");
         if (f) {
             fprintf(f, "=== MuseScore Android Process Start ===\n");
@@ -92,6 +102,13 @@ __attribute__((constructor)) static void androidEarlyLog()
             break;
         }
     }
+
+    // Always also write to stderr for logcat
+    fprintf(stderr, "=== MuseScore Android Process Start (stderr) ===\n");
+    fprintf(stderr, "PID: %d\n", (int)getpid());
+    fprintf(stderr, "UID: %d\n", (int)getuid());
+    fprintf(stderr, "Constructor reached!\n");
+    fflush(stderr);
 }
 #endif // Q_OS_ANDROID
 
